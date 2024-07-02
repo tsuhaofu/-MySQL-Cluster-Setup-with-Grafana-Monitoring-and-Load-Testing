@@ -20,7 +20,7 @@ This project sets up a MySQL cluster with 1 master and 2 slaves in a local envir
 # Step 1: Install MySQL
 brew install mysql
 brew services start mysql
-mysql_secure_installation
+mysql_secure_installation (password: ComplexPassword123!)
 
 # Step 2: Configure MySQL Master and Slaves
 
