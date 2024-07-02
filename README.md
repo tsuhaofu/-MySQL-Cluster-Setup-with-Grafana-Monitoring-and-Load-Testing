@@ -20,6 +20,7 @@ This project sets up a MySQL cluster with 1 master and 2 slaves in a local envir
 # Step 1: Install MySQL
 brew install mysql
 brew services start mysql
+mysql_secure_installation
 
 # Step 2: Configure MySQL Master and Slaves
 
@@ -32,24 +33,30 @@ mysqld --initialize-insecure --datadir=/opt/homebrew/var/mysql_slave2
 # Edit MySQL Configuration Files
 
 # Create /opt/homebrew/etc/my.cnf for the master
-echo "[mysqld]
+sudo nano /opt/homebrew/etc/my.cnf
+[mysqld]
 server-id=1
 log-bin=mysql-bin
-binlog_do_db=test_db" > /opt/homebrew/etc/my.cnf
 
 # Create /opt/homebrew/etc/my_slave1.cnf for the first slave
-echo "[mysqld]
+sudo nano /opt/homebrew/etc/my_slave1.cnf
+[mysqld]
 server-id=2
-relay-log=mysql-relay-bin
-log-bin=mysql-bin
-binlog_do_db=test_db" > /opt/homebrew/etc/my_slave1.cnf
+datadir=/opt/homebrew/var/mysql_slave1
+port=3307
+relay-log=relay-log
+socket=/tmp/mysql_slave1.sock
+mysqlx=0
 
 # Create /opt/homebrew/etc/my_slave2.cnf for the second slave
-echo "[mysqld]
+sudo nano /opt/homebrew/etc/my_slave2.cnf
+[mysqld]
 server-id=3
-relay-log=mysql-relay-bin
-log-bin=mysql-bin
-binlog_do_db=test_db" > /opt/homebrew/etc/my_slave2.cnf
+datadir=/opt/homebrew/var/mysql_slave1
+port=3308
+relay-log=relay-log
+socket=/tmp/mysql_slave1.sock
+mysqlx=0
 
 # Start MySQL Instances
 mysqld --defaults-file=/opt/homebrew/etc/my.cnf &
@@ -59,15 +66,21 @@ mysqld --defaults-file=/opt/homebrew/etc/my_slave2.cnf &
 # Configure Replication
 
 # Connect to the master and set up replication user
-mysql -u root -p -e "
+mysql -u root -p
 CREATE USER 'replica'@'%' IDENTIFIED BY 'ComplexPassword123!';
 GRANT REPLICATION SLAVE ON *.* TO 'replica'@'%';
 FLUSH PRIVILEGES;
 SHOW MASTER STATUS;"
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000001 |      834 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
 
 # Configure slaves
-mysql -u root -p -h 127.0.0.1 -P 3307 -e "
+mysql -u root -h 127.0.0.1 -P 3307
 STOP SLAVE;
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'root_password';
 CHANGE MASTER TO 
   MASTER_HOST='127.0.0.1', 
   MASTER_USER='replica', 
@@ -76,8 +89,9 @@ CHANGE MASTER TO
   MASTER_LOG_POS=834;
 START SLAVE;"
 
-mysql -u root -p -h 127.0.0.1 -P 3308 -e "
+mysql -u root -h 127.0.0.1 -P 3308 -e "
 STOP SLAVE;
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'root_password';
 CHANGE MASTER TO 
   MASTER_HOST='127.0.0.1', 
   MASTER_USER='replica', 
@@ -96,7 +110,8 @@ mysql -u root -p -h 127.0.0.1 -P 3308 -e "SHOW SLAVE STATUS\G;"
 brew install prometheus
 
 # Configure Prometheus
-echo "global:
+sudo nano /opt/homebrew/etc/prometheus.yml
+global:
   scrape_interval: 15s
 
 scrape_configs:
@@ -106,7 +121,7 @@ scrape_configs:
 
   - job_name: 'mysql'
     static_configs:
-      - targets: ['localhost:9104']" > /opt/homebrew/etc/prometheus.yml
+      - targets: ['localhost:9104']
 
 # Start Prometheus
 brew services start prometheus
@@ -118,13 +133,21 @@ curl -LO https://github.com/prometheus/mysqld_exporter/releases/download/v0.14.0
 tar xvf mysqld_exporter-0.14.0.darwin-amd64.tar.gz
 sudo mv mysqld_exporter-0.14.0.darwin-amd64/mysqld_exporter /usr/local/bin/
 
+# Create a MySQL User for Exporter:
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY 'ComplexPassword123!';
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
+FLUSH PRIVILEGES;
+
 # Create a .my.cnf file for the exporter
-echo "[client]
+sudo nano /usr/local/bin/.my.cnf
 user=exporter
-password=ComplexPassword123!" > ~/.my.cnf
+password=ComplexPassword123!
 
 # Run MySQL Exporter
 mysqld_exporter --config.my-cnf /usr/local/bin/.my.cnf &
+
+# Check Prometheus Targets:
+Open your web browser and go to http://localhost:9090/targets. You should see both the Prometheus and MySQL targets listed and their status as “UP”.
 
 # Install Grafana
 brew install grafana
