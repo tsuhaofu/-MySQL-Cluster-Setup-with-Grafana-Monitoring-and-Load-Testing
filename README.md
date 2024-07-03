@@ -168,6 +168,7 @@ brew install sysbench
 sysbench --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=ComplexPassword123! --mysql-db=test_db --table-size=100000 --tables=10 --threads=6 --time=60 --events=0 --report-interval=10 oltp_read_write prepare
 
 # Run the Load Test
+
 sysbench --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=ComplexPassword123! --mysql-db=test_db --table-size=100000 --tables=10 --threads=6 --time=60 --events=0 --report-interval=10 oltp_read_write run
 
 # Step 5: Monitor the Dashboard
@@ -204,7 +205,8 @@ mysqld --defaults-file=/opt/homebrew/etc/my_slave2.cnf &
 mysql -u root -p -h 127.0.0.1 -P 3307 -e "START SLAVE;"
 mysql -u root -p -h 127.0.0.1 -P 3308 -e "START SLAVE;"
 
-# Start Prometheus and Grafana
+# Start MySQL_Exporter, Prometheus and Grafana
+mysqld_exporter --config.my-cnf /usr/local/bin/.my.cnf &
 brew services start prometheus
 brew services start grafana
 
