@@ -27,7 +27,7 @@ Substitute your own; they are local-only credentials for a cluster you can tear 
 # Step 1: Install MySQL
 brew install mysql
 brew services start mysql
-mysql_secure_installation (password: <ROOT_PASSWORD>)
+mysql_secure_installation   # set a root password when prompted
 
 # Step 2: Configure MySQL Master and Slaves
 
@@ -74,7 +74,7 @@ mysqld --defaults-file=/opt/homebrew/etc/my_slave2.cnf &
 
 # Connect to the master and set up replication user
 mysql -u root -p
-CREATE USER 'replica'@'%' IDENTIFIED BY '<ROOT_PASSWORD>';
+CREATE USER 'replica'@'%' IDENTIFIED BY '<REPLICATION_PASSWORD>';
 GRANT REPLICATION SLAVE ON *.* TO 'replica'@'%';
 FLUSH PRIVILEGES;
 SHOW MASTER STATUS;"
@@ -91,7 +91,7 @@ ALTER USER 'root'@'localhost' IDENTIFIED BY '<ROOT_PASSWORD>';
 CHANGE MASTER TO 
   MASTER_HOST='127.0.0.1', 
   MASTER_USER='replica', 
-  MASTER_PASSWORD='<ROOT_PASSWORD>', 
+  MASTER_PASSWORD='<REPLICATION_PASSWORD>', 
   MASTER_LOG_FILE='mysql-bin.000001', 
   MASTER_LOG_POS=834;
 START SLAVE;"
@@ -102,7 +102,7 @@ ALTER USER 'root'@'localhost' IDENTIFIED BY '<ROOT_PASSWORD>';
 CHANGE MASTER TO 
   MASTER_HOST='127.0.0.1', 
   MASTER_USER='replica', 
-  MASTER_PASSWORD='<ROOT_PASSWORD>', 
+  MASTER_PASSWORD='<REPLICATION_PASSWORD>', 
   MASTER_LOG_FILE='mysql-bin.000001', 
   MASTER_LOG_POS=834;
 START SLAVE;"
@@ -141,14 +141,14 @@ tar xvf mysqld_exporter-0.14.0.darwin-amd64.tar.gz
 sudo mv mysqld_exporter-0.14.0.darwin-amd64/mysqld_exporter /usr/local/bin/
 
 # Create a MySQL User for Exporter:
-CREATE USER 'exporter'@'localhost' IDENTIFIED BY '<ROOT_PASSWORD>';
+CREATE USER 'exporter'@'localhost' IDENTIFIED BY '<REPLICATION_PASSWORD>';
 GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
 FLUSH PRIVILEGES;
 
 # Create a .my.cnf file for the exporter
 sudo nano /usr/local/bin/.my.cnf
 user=exporter
-password=<ROOT_PASSWORD>
+password=<REPLICATION_PASSWORD>
 
 # Run MySQL Exporter
 mysqld_exporter --config.my-cnf /usr/local/bin/.my.cnf &
@@ -172,11 +172,11 @@ brew services start grafana
 brew install sysbench
 
 # Prepare the Test Database
-sysbench --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=<ROOT_PASSWORD> --mysql-db=test_db --table-size=100000 --tables=10 --threads=6 --time=60 --events=0 --report-interval=10 oltp_read_write prepare
+sysbench --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=<REPLICATION_PASSWORD> --mysql-db=test_db --table-size=100000 --tables=10 --threads=6 --time=60 --events=0 --report-interval=10 oltp_read_write prepare
 
 # Run the Load Test
 
-sysbench --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=<ROOT_PASSWORD> --mysql-db=test_db --table-size=100000 --tables=10 --threads=6 --time=60 --events=0 --report-interval=10 oltp_read_write run
+sysbench --mysql-host=127.0.0.1 --mysql-port=3306 --mysql-user=root --mysql-password=<REPLICATION_PASSWORD> --mysql-db=test_db --table-size=100000 --tables=10 --threads=6 --time=60 --events=0 --report-interval=10 oltp_read_write run
 
 # Step 5: Monitor the Dashboard
 
