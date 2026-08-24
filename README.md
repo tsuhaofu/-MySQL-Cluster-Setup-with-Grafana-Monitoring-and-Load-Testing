@@ -4,6 +4,13 @@
 
 This project sets up a MySQL cluster with 1 master and 2 slaves in a local environment. Additionally, Grafana is configured to monitor the MySQL cluster, and load testing is added to put some traffic into the cluster.
 
+**This repository is a runbook, not an application.** It contains no code, configs or
+dashboards — everything needed is in the commands below, which were written and run on
+macOS with Homebrew. Follow them in order and you will end up with the cluster described.
+
+Passwords below are written as placeholders (`<ROOT_PASSWORD>`, `<REPLICATION_PASSWORD>`).
+Substitute your own; they are local-only credentials for a cluster you can tear down.
+
 ## Installation
 
 ### Prerequisites
